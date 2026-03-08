@@ -85,7 +85,7 @@ Rules you must follow without exception:
 | Control | Implementation | Purpose |
 |---|---|---|
 | Temperature 0 | `options: { temperature: 0 }` in Ollama API call | Eliminates randomness — same input always same output |
-| Confidence gating | Findings with confidence <0.6 flagged automatically | Low-confidence detections get explicit warnings in report |
+| Confidence gating | Findings with confidence &lt;0.6 flagged automatically | Low-confidence detections get explicit warnings in report |
 | Citation enforcement | Prompt requires document + section + clause | LLM cannot make claim without specifying the source |
 | Not-found fallback | Explicit prompt instruction + response validation | Returns structured "not found" rather than inventing a standard |
 | Output schema validation | Pydantic model validates LLM JSON response | Malformed responses are rejected and logged, not passed forward |
