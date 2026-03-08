@@ -4,8 +4,6 @@ import starlight from '@astrojs/starlight';
 import starlightThemeRapide from 'starlight-theme-rapide';
 
 export default defineConfig({
-  site: "https://ast-intel.github.io",
-  base: "/AST-INSPECTION-AI",
   integrations: [
     starlight({
       title: 'AST Inspection AI',
