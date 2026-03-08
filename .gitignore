@@ -1,0 +1,53 @@
+# Real inspection data - NEVER commit
+data/
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.tif
+*.mp4
+*.avi
+
+# Reports and documents - NEVER commit
+*.pdf
+*.docx
+*.xlsx
+*.doc
+*.xls
+
+# Model weights - never commit
+*.bin
+*.gguf
+*.safetensors
+*.pt
+*.pth
+
+# Vector database
+vectordb/
+chroma/
+
+# Logs
+logs/
+
+# Credentials
+.env
+*.env
+secrets/
+credentials/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+dist/
+build/
+
+# Node / Astro
+node_modules/
+.astro/
+
+# OS
+.DS_Store
+Thumbs.db
