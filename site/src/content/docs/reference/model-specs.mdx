@@ -1,0 +1,108 @@
+---
+title: Model Specs & Upgrade Path
+description: Technical specifications for all AI models and the planned upgrade path
+---
+
+# Model Specs & Upgrade Path
+
+## Current Models (POC)
+
+### Qwen2.5 14B — Inspection Intelligence
+
+| Property | Value |
+|---|---|
+| Developer | Alibaba Cloud / Qwen Team |
+| Parameters | 14 billion |
+| VRAM required | ~9GB (4-bit quantised) |
+| Context window | 128K tokens |
+| Languages | English, Arabic, + 29 others |
+| Licence | Apache 2.0 (commercial use permitted) |
+| Temperature setting | 0.0 (deterministic) |
+| Ollama tag | `qwen2.5:14b` |
+
+**Why this model:** Strongest technical reasoning in the sub-16GB VRAM category. Excellent Arabic language support. Apache 2.0 licence means no restrictions on commercial use within CANAR.
+
+---
+
+### Qwen2.5-Coder 7B — Operations Intelligence
+
+| Property | Value |
+|---|---|
+| Developer | Alibaba Cloud / Qwen Team |
+| Parameters | 7 billion |
+| VRAM required | ~4GB (4-bit quantised) |
+| Context window | 128K tokens |
+| Specialisation | Code, structured output, system reasoning |
+| Licence | Apache 2.0 |
+| Ollama tag | `qwen2.5-coder:7b` |
+
+---
+
+### YOLOv11 — Vision Detection
+
+| Property | Value |
+|---|---|
+| Developer | Ultralytics |
+| Architecture | YOLO (You Only Look Once) v11 |
+| Base weights | COCO pretrained |
+| Input resolution | 640×640 (configurable) |
+| Inference speed (RTX 4080S) | ~15ms per image |
+| Licence | AGPL-3.0 / Enterprise |
+| Fine-tuning | Phase 3 — CANAR labeled dataset |
+
+---
+
+## Production Model Upgrades
+
+### Qwen2.5 32B — Inspection Intelligence (Production)
+
+| Property | Value |
+|---|---|
+| Parameters | 32 billion |
+| VRAM required | ~18GB (4-bit quantised) |
+| Improvement over 14B | Stronger multi-step reasoning, more accurate standard citations, better handling of complex bilingual reports |
+| Ollama tag | `qwen2.5:32b` |
+
+### Qwen2.5-Coder 14B — Operations Intelligence (Production)
+
+| Property | Value |
+|---|---|
+| Parameters | 14 billion |
+| VRAM required | ~8GB (4-bit quantised) |
+| Improvement over 7B | More reliable log analysis, better error recovery suggestions |
+| Ollama tag | `qwen2.5-coder:14b` |
+
+---
+
+## Upgrade Procedure
+
+Upgrading models does not require rebuilding the Docker container from scratch.
+
+```bash
+# Pull new model weights inside the running container
+docker exec ast-ai ollama pull qwen2.5:32b
+docker exec ast-ai ollama pull qwen2.5-coder:14b
+
+# Update config
+# config/production.env: MODEL_SIZE=32b
+
+# Run evaluation suite to confirm quality improvement
+docker exec ast-ai python tests/eval_suite.py --compare 14b 32b
+
+# If evaluation passes — tag new config as active
+# If evaluation fails — roll back to previous MODEL_SIZE value
+```
+
+**Evaluation gate:** A new model is not deployed to production unless the evaluation suite shows measurably better performance on the CANAR benchmark set (defined during Phase 4). Rolling back is as simple as changing one config value.
+
+---
+
+## Continuous Improvement Model
+
+| Mechanism | Frequency | What Happens |
+|---|---|---|
+| **Passive** | Every job | New job adds to ChromaDB — retrieval improves automatically |
+| **Active** | Ongoing | Engineer corrections captured as fine-tuning dataset |
+| **Scheduled** | Quarterly | Accumulated feedback used to fine-tune YOLOv11 and potentially LLM |
+
+**Fine-tuning gate:** A fine-tuned model is only deployed if it scores higher on the benchmark set than the current production model. Version-controlled. Rollback always available.

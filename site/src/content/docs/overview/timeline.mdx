@@ -1,0 +1,89 @@
+---
+title: Timeline
+description: Full project timeline from Phase 0 to production deployment
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Timeline
+
+## POC Track — ~10 Weeks Total
+
+All POC phases run on the home machine. No company resources required.
+
+| Phase | Name | Duration | Status |
+|---|---|---|---|
+| **P.00** | Data Audit & Repository Setup | 2–3 days | 🟢 **Active** |
+| **P.01** | Environment Setup & Dual-LLM Foundation | 3–5 days | ⬜ Upcoming |
+| **P.02** | Data Preparation Pipeline | 1–2 weeks | ⬜ Upcoming |
+| **P.03** | Vision Pipeline | 1–2 weeks | ⬜ Upcoming |
+| **P.04** | Dual-LLM Intelligence Layer | 1–2 weeks | ⬜ Upcoming |
+| **P.05** | Integration & UI | 1 week | ⬜ Upcoming |
+| **P.06** | Security Verification | 3–5 days | ⬜ Upcoming |
+| **P.07** | Documentation & Transfer Package | 1 week | ⬜ Upcoming |
+
+---
+
+## Management Gate
+
+<Aside type="caution" title="Decision point — between P.07 and P.08">
+At the completion of Phase 7, a working, documented, security-verified system exists. This is the point at which a formal presentation is made to management. The Production track begins only after this approval.
+
+**What management reviews at this gate:**
+- Live demonstration of the system on real CANAR inspection data
+- Security verification report with adversarial test results
+- Performance benchmarks — processing time, report quality comparison
+- Production deployment plan and IT requirements
+- What is being asked for (see [POC vs Production](/overview/poc-vs-production))
+</Aside>
+
+---
+
+## Production Track — ~3–5 Weeks After Approval
+
+| Phase | Name | Duration | Status |
+|---|---|---|---|
+| **IT** | VLAN Isolation | 1–2 days IT work | 🟡 Pending approval |
+| **Deploy** | Production Machine Setup | 2–3 days | 🟡 Pending approval |
+| **P.08** | LIS Integration | TBD (depends on LIS API surface) | 🟣 Future |
+
+---
+
+## Key Milestones
+
+```
+Week 1    │ Phase 0 complete — full data inventory done
+          │ Repository and project site established
+          │
+Week 2    │ Phase 1 complete — both LLMs running, GPU-accelerated
+          │ Docker environment verified
+          │
+Week 4    │ Phase 2 complete — full POC dataset processed
+          │ Vector database populated
+          │
+Week 6    │ Phase 3 complete — YOLOv11 baseline established
+          │ First labeled dataset, defect taxonomy defined
+          │
+Week 8    │ Phase 4 complete — end-to-end report generation working
+          │ Hallucination controls validated
+          │
+Week 9    │ Phase 5 complete — full UI operational
+          │ End-to-end demo possible
+          │
+Week 10   │ Phase 6 complete — adversarial security testing done
+          │ Phase 7 complete — transfer package ready
+          │
+          ├──────────── MANAGEMENT PRESENTATION ────────────
+          │
++2 weeks  │ IT VLAN isolation complete
+          │ Production deployment done
+          │ P.08 LIS integration scoped and begun
+```
+
+---
+
+## Duration Notes
+
+Phase durations are honest estimates based on one person working part-time (evenings and weekends) on the POC alongside primary job responsibilities. Each phase has a **minimum** duration set by the complexity of the work, not by available time.
+
+Phases are not started before their predecessors are fully complete and documented. No phase is considered "done" until all deliverables on its checklist are checked off with evidence.

@@ -1,0 +1,86 @@
+---
+title: POC Overview
+description: What the Proof of Concept is, what it proves, and how it is structured
+---
+
+import { Aside, Steps, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Proof of Concept
+
+## What the POC Is
+
+The Proof of Concept is a fully functional end-to-end build of the AST Inspection AI system, running on a personal home workstation, using real CANAR inspection data.
+
+It is not a prototype. It is not a mockup. It is not a demo environment with fake data. It is the complete system — vision pipeline, dual-LLM intelligence layer, vector database, Streamlit UI, security verification — running on slightly smaller models than production (14B instead of 32B) due to the 16GB VRAM constraint of the home machine GPU.
+
+When the POC is done, a working Docker container exists that:
+- Takes a folder of H30T images as input
+- Runs them through the YOLOv11 vision pipeline
+- Passes structured findings to the Inspection LLM
+- Cross-references engineering standards from the vector database
+- Produces a structured inspection report
+- Can be copied onto a USB drive and deployed on a different machine in under an hour
+
+---
+
+## POC Hardware
+
+| Component | Spec |
+|---|---|
+| CPU | AMD Ryzen 7 7800X3D |
+| GPU | NVIDIA RTX 4080 Super — **16GB VRAM** |
+| RAM | 64GB DDR5 |
+| OS | Windows 11 + WSL2 (Ubuntu) |
+| Runtime | Docker Desktop with GPU passthrough |
+
+**VRAM constraint:** The 16GB VRAM means both LLMs cannot be loaded simultaneously. The Operations LLM (Qwen2.5-Coder 7B, ~4GB) loads first for system tasks, unloads, then the Inspection LLM (Qwen2.5 14B, ~9GB) loads for report generation. This adds latency but does not affect correctness. The production RTX 5090 (32GB VRAM) runs both simultaneously.
+
+---
+
+## POC Phases
+
+<CardGrid>
+  <Card title="Phase 0 · Data Audit" icon="list-format">
+    Before touching code — complete inventory of every data asset. Images, reports, standards, drawings. All quality issues documented.
+  </Card>
+  <Card title="Phase 1 · Environment" icon="laptop">
+    Docker environment. Both LLMs installed. GPU-accelerated. Network-isolated. Logging framework. Every config documented.
+  </Card>
+  <Card title="Phase 2 · Data Pipeline" icon="open-book">
+    Transform raw assets into structured AI inputs. OCR, PDF extraction, vector database population, report-to-image matching.
+  </Card>
+  <Card title="Phase 3 · Vision" icon="magnifier">
+    YOLOv11 zero-shot baseline. Defect taxonomy defined. 100–200 images labeled. Baseline accuracy per defect type established.
+  </Card>
+  <Card title="Phase 4 · Intelligence" icon="puzzle">
+    Both LLMs wired to their roles. Hallucination controls. Structured output. Report quality measured against real human-written reports.
+  </Card>
+  <Card title="Phase 5 · Integration & UI" icon="bars">
+    End-to-end pipeline. Streamlit UI. Annotated image viewer. PDF/Word report export. System health dashboard.
+  </Card>
+  <Card title="Phase 6 · Security" icon="shield">
+    Adversarial testing. Prompt injection. File deletion attempts. Network exfiltration attempts. Wireshark capture. All results documented.
+  </Card>
+  <Card title="Phase 7 · Transfer Package" icon="seti:zip">
+    Full documentation. Executive summary. Transfer runbook. Docker container exported and verified. Ready for management presentation.
+  </Card>
+</CardGrid>
+
+---
+
+## POC Completion Criteria
+
+The POC is complete when all of the following are true:
+
+<Steps>
+1. End-to-end pipeline processes a complete real inspection job without manual intervention
+2. Generated report is reviewed by a qualified engineer and rated comparable in quality and completeness to a manually written report
+3. Security verification test suite passes — Wireshark confirms zero outbound traffic during a 30-minute demo session
+4. Cryptographic hash of the source archive before and after testing is identical — no file modification occurred
+5. Docker container is exported, transferred to a second machine, loaded, and the smoke test suite passes
+6. All phase documentation is complete and committed to the repository
+</Steps>
+
+<Aside type="tip">
+The POC is not declared complete based on subjective confidence. It is declared complete based on these six checkboxes. All six must be ticked.
+</Aside>

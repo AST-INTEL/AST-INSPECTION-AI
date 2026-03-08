@@ -1,0 +1,128 @@
+---
+title: "Phase 3 · Vision Pipeline"
+description: YOLOv11 deployment, defect taxonomy, baseline accuracy measurement, initial labeling
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Phase 3 · Vision Pipeline
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 1–2 weeks &nbsp;|&nbsp; **Depends on:** Phase 2 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Deploy YOLOv11 against real H30T imagery. Measure exactly what it gets right and what it misses. Define the defect taxonomy. Begin labeling. Set an honest baseline before any fine-tuning is attempted.
+
+The output of this phase is a measured baseline accuracy per defect type and an initial labeled dataset — the first raw material for model fine-tuning.
+
+---
+
+## YOLOv11 Installation and GPU Verification
+
+```bash
+# Install inside Docker container
+pip install ultralytics
+
+# Verify GPU
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+# Expected: True  NVIDIA GeForce RTX 4080 SUPER
+
+# Run inference verification on a single test image
+yolo detect predict model=yolov11n.pt source=test_image.jpg device=0
+```
+
+---
+
+## Zero-Shot Baseline
+
+Before any CANAR-specific fine-tuning, run the pretrained YOLOv11 weights against the full POC dataset.
+
+**Why:** The zero-shot baseline tells us what the model already knows how to find (general corrosion, cracks, etc.) and what it has no concept of (CANAR-specific defect types, GCC infrastructure patterns). This gap is exactly what fine-tuning closes.
+
+<Steps>
+1. Run YOLOv11 (pretrained) on all RGB wide images in the POC dataset
+2. Run YOLOv11 (pretrained) on all thermal images in the POC dataset
+3. For each image, compare detections against the corresponding report findings
+4. Record: true positives, false positives, missed detections — per defect type
+5. Calculate precision, recall, F1 per class
+6. Document the gap between zero-shot performance and report-documented findings
+</Steps>
+
+<Aside type="note" title="Honest measurement">
+Zero-shot performance on domain-specific industrial inspection will be poor. That is expected. The purpose of this measurement is not to impress — it is to set the baseline that fine-tuning will improve against. Record everything accurately.
+</Aside>
+
+---
+
+## Defect Taxonomy Definition
+
+Based on the defect frequency analysis from Phase 0 and the zero-shot gap analysis above, define a formal defect taxonomy for CANAR's inspection context.
+
+**Taxonomy requirements:**
+- 8–15 classes (enough to be useful, few enough to label efficiently)
+- Each class has a precise written definition
+- Each class has at least 3 example images from the CANAR archive
+- Classes are mutually exclusive — a defect belongs to exactly one class
+- Classes cover at least 90% of findings documented in the historical report archive
+
+**Example taxonomy (to be refined with real data):**
+
+| Class ID | Name | Definition |
+|---|---|---|
+| `COR` | Corrosion | Surface oxidation, rust, material loss due to chemical reaction |
+| `CRK` | Structural Crack | Linear fractures in structural members, welds, or coatings |
+| `THM` | Thermal Anomaly | Temperature deviation >10°C from expected baseline in thermal imagery |
+| `INS` | Insulation Failure | Missing, damaged, or degraded thermal insulation on pipework |
+| `LKG` | Leakage Indicator | Visual evidence of fluid leakage — staining, deposits, residue |
+| `ELC` | Electrical Fault | Visible damage to electrical components, cabling, or terminations |
+| `MCH` | Mechanical Wear | Physical abrasion, impact damage, or fatigue indicators |
+| `CTG` | Coating Failure | Blistering, peeling, or delamination of protective coatings |
+
+---
+
+## Labeling Setup — Label Studio
+
+```bash
+# Install Label Studio locally (not cloud)
+pip install label-studio
+
+# Start on localhost only
+label-studio start --host localhost --port 8080
+```
+
+**Labeling workflow:**
+1. Import POC dataset images into Label Studio
+2. Create labeling template with the defined taxonomy classes
+3. Use existing report findings as the ground truth reference for each image
+4. Label bounding boxes around every defect documented in the reports
+5. Label any additional defects visible in the imagery that were NOT in the report (these are interesting findings)
+
+**Target for Phase 3:** 100–200 labeled images from the POC dataset. This is enough for a first fine-tuning pass in Phase 4.
+
+---
+
+## Thermal-Specific Processing
+
+Thermal imagery requires separate treatment from RGB:
+
+- **Color mapping:** Apply standardised false-color palette (ironbow or rainbow) for visual consistency
+- **Temperature normalisation:** Normalise the temperature range per image before inference
+- **Threshold alerting:** Flag any region with temperature deviation >10°C from the image median — these are automatic candidates for `THM` class labeling
+- **RGB-thermal alignment:** For paired images (same location, different sensor), document whether spatial alignment is close enough for cross-channel comparison
+
+---
+
+## Phase 3 Deliverables Checklist
+
+- [ ] YOLOv11 installed and GPU-verified in container — `nvidia-smi` output showing utilisation during inference
+- [ ] Zero-shot baseline report — precision/recall/F1 per class, documented against report findings
+- [ ] Defect taxonomy document — `docs/04_vision/defect_taxonomy.md` — all classes defined, example images referenced
+- [ ] Label Studio installed locally, labeling project created
+- [ ] 100–200 images labeled — label files committed to `data/labels/v1/`
+- [ ] Thermal extraction pipeline verified — DJI SDK producing valid temperature maps for all RJPEG files
+- [ ] `docs/04_vision/zero_shot_results.md` — full baseline metrics, honest assessment of gaps
+- [ ] `docs/04_vision/labeling_methodology.md` — labeling rules, edge case decisions documented

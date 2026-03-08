@@ -1,0 +1,38 @@
+---
+title: Work Machine Requirements
+description: Hardware and software requirements for the production workstation
+---
+
+# Work Machine Requirements
+
+## Hardware — Already Available
+
+The production machine is the existing CANAR work machine. No new hardware purchase required.
+
+| Component | Spec | Required Minimum | Status |
+|---|---|---|---|
+| GPU | RTX 5090 **32GB VRAM** | 20GB VRAM | ✅ Exceeds |
+| CPU | Ryzen 9 Threadripper | 8-core | ✅ Exceeds |
+| RAM | **256GB** | 32GB | ✅ Exceeds |
+| Storage | TBD | 200GB free | Verify |
+| OS | Windows 11 (assumed) | Windows 10+ or Ubuntu | ✅ |
+
+## Software Requirements
+
+| Software | Version | Cost | Action |
+|---|---|---|---|
+| Docker Desktop | Latest | Free | Install if not present |
+| NVIDIA Drivers | 535+ (CUDA 12.x) | Free | Update if needed |
+| NVIDIA Container Toolkit | Latest | Free | Install |
+
+## Storage Estimate
+
+| Item | Size | Notes |
+|---|---|---|
+| Docker container image | ~15GB | One-time |
+| Qwen2.5 32B model weights | ~18GB | One-time download |
+| Qwen2.5-Coder 14B weights | ~8GB | One-time download |
+| ChromaDB vector database | Grows over time | ~1GB per 50 jobs |
+| Inspection archive | Existing data | Already on site |
+
+**Minimum free storage needed before deployment:** ~50GB

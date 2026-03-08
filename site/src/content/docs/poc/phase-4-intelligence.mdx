@@ -1,0 +1,182 @@
+---
+title: "Phase 4 · Dual-LLM Intelligence Layer"
+description: Wiring both LLMs to their specialist roles, hallucination controls, structured report output
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Phase 4 · Dual-LLM Intelligence Layer
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 1–2 weeks &nbsp;|&nbsp; **Depends on:** Phase 3 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Wire both language models into their specialist roles. Build the model routing layer that separates inspection tasks from operations tasks. Implement hallucination controls from day one. Measure report quality against real human-written reports before moving to the UI.
+
+The output of this phase is a working AI intelligence layer that takes structured vision output and produces inspection report drafts with citations, confidence scores, and uncertainty flags.
+
+---
+
+## Findings JSON Schema
+
+The bridge between the vision layer and the language model. YOLOv11 output is not fed directly to the LLM as raw text — it is structured into a validated schema first.
+
+```json
+{
+  "job_id": "KOC-2024-0147",
+  "inspection_date": "2024-03-15",
+  "image_id": "KOC-2024-0147_rgb_wide_047",
+  "sensor_type": "rgb_wide",
+  "detections": [
+    {
+      "class": "COR",
+      "class_name": "Corrosion",
+      "confidence": 0.87,
+      "bounding_box": [142, 89, 334, 201],
+      "area_px": 38308,
+      "severity_estimate": "moderate"
+    },
+    {
+      "class": "CTG",
+      "class_name": "Coating Failure",
+      "confidence": 0.71,
+      "bounding_box": [280, 150, 420, 230],
+      "area_px": 11200,
+      "severity_estimate": "minor"
+    }
+  ],
+  "thermal_anomalies": [],
+  "no_defects_detected": false
+}
+```
+
+---
+
+## Inspection LLM — Prompt Architecture
+
+**Core principle:** The LLM's job is to reason about findings against standards, not to invent information.
+
+```
+SYSTEM PROMPT (permanent):
+You are a technical inspection report writer for CANAR Advanced Systems & Technology.
+You analyse inspection findings and produce structured reports citing specific engineering standards.
+
+Rules you must follow without exception:
+1. Every finding must cite a specific standard document, section, and clause.
+2. If a standard is not in the provided context, respond: "No applicable standard found in knowledge base."
+3. Never estimate severity without evidence from the findings data.
+4. Confidence below 0.6 must be flagged with: [LOW CONFIDENCE — ENGINEER REVIEW REQUIRED]
+5. Temperature = 0. No creative responses. Only structured technical output.
+```
+
+**Context injection per call:**
+- Vision findings JSON for the current image set
+- Relevant retrieved chunks from ChromaDB (top-5 by cosine similarity to defect types found)
+- Historical findings from similar jobs in the same asset category
+
+---
+
+## Hallucination Controls
+
+| Control | Implementation | Purpose |
+|---|---|---|
+| Temperature 0 | `options: { temperature: 0 }` in Ollama API call | Eliminates randomness — same input always same output |
+| Confidence gating | Findings with confidence <0.6 flagged automatically | Low-confidence detections get explicit warnings in report |
+| Citation enforcement | Prompt requires document + section + clause | LLM cannot make claim without specifying the source |
+| Not-found fallback | Explicit prompt instruction + response validation | Returns structured "not found" rather than inventing a standard |
+| Output schema validation | Pydantic model validates LLM JSON response | Malformed responses are rejected and logged, not passed forward |
+| Engineer gate | No output leaves the system without review flag | All draft reports go to pending review queue |
+
+---
+
+## Operations LLM — Responsibilities
+
+The Qwen2.5-Coder 7B model handles everything except inspection reasoning:
+
+```python
+# Example: Operations LLM system health check
+OPERATIONS_PROMPT = """
+You are the operations monitor for the AST Inspection AI pipeline.
+Analyse the following system metrics and log excerpts.
+Report: current status, any anomalies, recommended actions.
+Format: JSON with keys: status, anomalies, recommendations, next_health_check_minutes.
+
+Current metrics:
+- VRAM: {vram_used}GB / {vram_total}GB
+- Queue depth: {queue_depth} jobs
+- Last job duration: {last_job_duration}s
+- Error count (last hour): {error_count}
+- Log excerpt: {log_tail}
+"""
+```
+
+---
+
+## Model Routing Layer
+
+The routing layer decides which LLM receives each task:
+
+```python
+class TaskRouter:
+    INSPECTION_TASKS = ["report_generation", "finding_analysis", "standard_lookup"]
+    OPERATIONS_TASKS = ["health_check", "log_analysis", "error_recovery", "queue_management"]
+
+    def route(self, task_type: str, payload: dict):
+        if task_type in self.INSPECTION_TASKS:
+            return self._call_inspection_llm(payload)
+        elif task_type in self.OPERATIONS_TASKS:
+            return self._call_operations_llm(payload)
+        else:
+            raise ValueError(f"Unknown task type: {task_type}")
+```
+
+On the POC machine (16GB VRAM), the router also handles sequential loading — unloading one model before loading the other.
+
+---
+
+## Report Quality Evaluation
+
+Before Phase 5 integration, report quality is evaluated against human-written reports:
+
+<Steps>
+1. Select 3 complete inspection jobs from the POC dataset that have well-written existing reports
+2. Run the full AI pipeline on the same image sets
+3. Present both reports (human and AI-generated) to a qualified engineer, anonymised
+4. Score both reports on: completeness, accuracy, standard citation, actionability
+5. Record scores — no minimum threshold to pass, but honest measurement required
+6. Document specific failure cases — findings missed, wrong standard cited, severity misjudged
+</Steps>
+
+<Aside type="note">
+The goal is not to prove the AI report is better than the human report. The goal is to understand the gap and document what the Phase 3 fine-tuning will close. Honest evaluation now prevents embarrassment in the management demo.
+</Aside>
+
+---
+
+## Edge Case Test Suite
+
+| Scenario | Expected Behaviour |
+|---|---|
+| Image with no defects detected | "No defects detected above confidence threshold. Engineer visual review recommended." |
+| Detection class not in taxonomy | Flagged as `UNKNOWN_CLASS`, logged, passed to engineer |
+| Conflicting RGB vs thermal (thermal shows anomaly, RGB is clean) | Both findings reported separately, conflict flagged |
+| Standard not in vector database | "No applicable standard found in knowledge base for [defect type]" |
+| LLM output fails schema validation | Error logged, job moved to manual queue, engineer notified |
+| VRAM exhaustion during job | Checkpoint saved, job paused, Operations LLM logs recovery path |
+
+---
+
+## Phase 4 Deliverables Checklist
+
+- [ ] Findings JSON schema — validated with Pydantic, committed to `src/schemas/`
+- [ ] Inspection LLM prompt templates — committed to `config/prompt_templates/inspection/`
+- [ ] Operations LLM prompt templates — committed to `config/prompt_templates/operations/`
+- [ ] Model routing layer — unit tests passing for all task types
+- [ ] Hallucination control test results — each control tested and evidenced
+- [ ] Report quality evaluation report — 3 jobs, scored, gaps documented
+- [ ] Edge case test suite — all 6 scenarios tested, actual vs expected documented
+- [ ] `docs/05_intelligence/` — full methodology, prompt decisions, evaluation results

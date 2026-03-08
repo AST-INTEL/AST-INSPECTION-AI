@@ -1,0 +1,47 @@
+---
+title: Data Assets
+description: Inventory of all CANAR data assets available for training and deployment
+---
+
+# Data Assets
+
+## What We Have
+
+CANAR's inspection archive is the raw material for everything in this system. The assets below are what Phase 0 inventories in detail. This page gives the high-level picture.
+
+| Asset Type | Format | Quality | AI Use |
+|---|---|---|---|
+| H30T imagery — RGB wide | JPEG | High | YOLOv11 training and inference |
+| H30T imagery — RGB zoom (36×) | JPEG | High | Defect detail confirmation |
+| H30T imagery — thermal IR | RJPEG (DJI proprietary) | High | Thermal anomaly detection |
+| Inspection reports — native PDF | PDF (text layer) | High | Direct text extraction |
+| Inspection reports — scanned PDF | PDF (image only) | Medium | OCR required |
+| Inspection reports — Word | DOCX | High | Direct text extraction |
+| Engineering standards | PDF (mostly native) | High | Vector database population |
+| Technical drawings | PDF / DWG | Variable | Title block extraction |
+
+---
+
+## H30T Multi-Sensor Payload
+
+The DJI H30T is a multi-sensor payload designed for professional inspection work. Each flight produces three co-registered image streams:
+
+| Sensor | Specification | Inspection Use |
+|---|---|---|
+| RGB Wide | 48MP, wide field of view | Overall asset condition, spatial context |
+| RGB Zoom | 36× optical zoom | Defect detail and confirmation |
+| Thermal IR | Radiometric JPEG (RJPEG) | Hotspot detection, insulation failure, leakage |
+| Laser Rangefinder | Distance measurement | Asset-to-drone distance metadata |
+
+**Thermal note:** DJI RJPEG format embeds the raw temperature matrix in the JPEG file. Extracting it requires the DJI Thermal SDK. The visual JPEG alone is not sufficient for quantitative thermal analysis — the raw temperature data is needed.
+
+---
+
+## Data Security
+
+Source data handling rules enforced throughout the system:
+
+- Source archive is always mounted read-only — no AI process can modify original files
+- Images and reports are never uploaded to any external service
+- The vector database stores extracted text and embeddings, not original files
+- All processing occurs on local hardware only

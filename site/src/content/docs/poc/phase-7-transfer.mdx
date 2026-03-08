@@ -1,0 +1,133 @@
+---
+title: "Phase 7 · Documentation & Transfer Package"
+description: Final documentation, Docker export, management presentation materials, production handover pack
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Phase 7 · Documentation & Transfer Package
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 1 week &nbsp;|&nbsp; **Depends on:** Phase 6 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Package everything. The POC is complete, security-verified, and tested. This phase produces the artifacts needed for management presentation and production deployment.
+
+The handover to the production workstation should be: copy one file, change three config values, run the smoke test. Everything else is pre-done.
+
+---
+
+## Management Presentation Package
+
+### Executive Summary (2 pages, non-technical)
+
+Contents:
+- What the system does — one paragraph
+- What it replaces — one paragraph
+- Why it is different from Scopito and other cloud solutions — one paragraph
+- What was built and tested — POC scope summary
+- Security posture — three bullets maximum
+- What is being asked for — exact request, no ambiguity
+- Cost comparison — POC cost to company (zero) vs expected production ask
+
+### Architecture Overview
+
+- One-page system diagram (visual, not technical)
+- Two-column comparison: POC vs Production
+- Data flow: image in → report out, annotated visually
+
+### Security Verification Summary
+
+- The five tests run
+- The result of each (pass/fail)
+- The Wireshark finding (zero outbound traffic in 30 minutes)
+- The hash verification result (archive unchanged)
+- One sentence: "Client data is physically unable to leave the system."
+
+### Performance Report
+
+Honest metrics from the POC run:
+- Images processed per hour
+- End-to-end time for a typical job (from folder submission to report in review queue)
+- Report quality comparison score (from Phase 4 evaluation)
+- Known limitations and what fine-tuning will improve
+
+---
+
+## Docker Container Export
+
+```bash
+# Finalise the container image
+docker build -t ast-inspection-ai:v1.0-poc .
+
+# Export to single transferable file
+docker save ast-inspection-ai:v1.0-poc | gzip > ast-inspection-ai-v1.0-poc.tar.gz
+
+# Verify the export
+sha256sum ast-inspection-ai-v1.0-poc.tar.gz
+# Record this hash — used to verify integrity on the production machine
+
+# Test load on a clean environment (optional but recommended)
+docker rmi ast-inspection-ai:v1.0-poc
+docker load < ast-inspection-ai-v1.0-poc.tar.gz
+# Run smoke test
+```
+
+---
+
+## Production Transfer Runbook
+
+Step-by-step instructions for deploying on the work machine. Written for a technically capable person who did not build the system.
+
+<Steps>
+1. **Prerequisites check** — Docker Desktop installed, NVIDIA drivers current, VLAN isolation confirmed by IT
+2. **Copy the container** — `ast-inspection-ai-v1.0-poc.tar.gz` transferred via USB
+3. **Verify integrity** — SHA-256 hash of the file must match the recorded value
+4. **Load the container** — `docker load < ast-inspection-ai-v1.0-poc.tar.gz`
+5. **Update the 3 config values** in `config/production.env`:
+   - `VRAM_LIMIT=28` (28GB safe ceiling on RTX 5090's 32GB)
+   - `MODEL_SIZE=32b` (triggers 32B model instead of 14B)
+   - `ARCHIVE_PATH=/path/to/canar/inspection/archive`
+6. **Run smoke test suite** — `docker exec ast-ai python tests/smoke_test.py`
+7. **Verify GPU** — confirm both LLMs load simultaneously without exceeding VRAM ceiling
+8. **Confirm network isolation** — netstat shows no external connections
+9. **Production ready** — first real job can be submitted
+</Steps>
+
+---
+
+## Lessons Learned Document
+
+Every problem encountered, every decision made, every change from the original plan. Written honestly — not as a success story.
+
+Sections:
+- Data surprises from Phase 0 audit
+- Environment issues encountered and resolutions
+- OCR accuracy realities vs expectations
+- Vision model gaps — what it missed, what it confused
+- LLM behaviour — unexpected outputs, prompt iterations required
+- Security test surprises (if any)
+- What would be done differently on Phase 2
+
+---
+
+## Phase 7 Deliverables Checklist
+
+- [ ] Executive summary — 2 pages, non-technical, reviewed for clarity by a non-engineer
+- [ ] Architecture overview — system diagram, POC vs Production comparison
+- [ ] Security verification summary — condensed version of Phase 6 report
+- [ ] Performance report — honest metrics, known limitations
+- [ ] Docker container exported — `ast-inspection-ai-v1.0-poc.tar.gz`
+- [ ] Container SHA-256 hash recorded in `docs/08_transfer/container_hash.txt`
+- [ ] Production transfer runbook — `docs/08_transfer/runbook.md`
+- [ ] Model upgrade path document — exact steps to swap 14B→32B and 7B→14B
+- [ ] Lessons learned — `docs/08_transfer/lessons_learned.md`
+- [ ] All docs committed and tagged as `v1.0-poc` release in GitHub
+
+<Aside type="tip" title="This is the management gate">
+When Phase 7 is complete, the system is ready for the management presentation. The presentation is the transition point between the POC track and the Production track. Nothing in the Production track begins until management has reviewed and approved.
+</Aside>

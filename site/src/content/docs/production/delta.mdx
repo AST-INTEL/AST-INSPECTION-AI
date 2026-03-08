@@ -1,0 +1,37 @@
+---
+title: POC → Production Delta
+description: Exactly what changes between the proof of concept and the production deployment
+---
+
+# POC → Production Delta
+
+Everything that changes when the system moves from the home machine to the CANAR work machine.
+
+## Model Upgrades
+
+| Component | POC | Production | Impact |
+|---|---|---|---|
+| Inspection LLM | Qwen2.5 **14B** | Qwen2.5 **32B** | Better technical reasoning, more accurate citations, stronger Arabic |
+| Operations LLM | Qwen2.5-Coder **7B** | Qwen2.5-Coder **14B** | Better log analysis, more reliable orchestration |
+| Loading mode | **Sequential** | **Simultaneous** | Faster end-to-end — no swap time between models |
+| VRAM usage | ~13GB peak (sequential) | ~26GB (simultaneous) | Well within RTX 5090's 32GB |
+
+## Infrastructure Upgrades
+
+| Component | POC | Production |
+|---|---|---|
+| GPU | RTX 4080 Super 16GB | RTX 5090 **32GB** |
+| CPU | Ryzen 7 7800X3D | Ryzen 9 **Threadripper** |
+| RAM | 64GB | **256GB** |
+| Network isolation | Physical air-gap (home) | IT-configured **VLAN** |
+
+## Config Changes (3 values)
+
+```bash
+# config/production.env
+VRAM_LIMIT=28        # was: 14
+MODEL_SIZE=32b       # was: 14b  
+ARCHIVE_PATH=/path/to/canar/archive  # was: ~/inspection-data
+```
+
+That is the entire configuration delta. The Docker container, application code, prompt templates, vector database, and all other components are identical to the POC.

@@ -1,0 +1,118 @@
+---
+title: "Phase 2 · Data Preparation Pipeline"
+description: Transform raw data assets into structured AI-ready inputs
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Phase 2 · Data Preparation Pipeline
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 1–2 weeks &nbsp;|&nbsp; **Depends on:** Phase 1 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Transform the raw inspection archive — images, reports, standards, drawings — into structured inputs the AI pipeline can actually use. This phase does not involve any model training or LLM calls. It is pure data engineering.
+
+The output is a populated vector database and a cleaned, structured dataset ready for the vision pipeline in Phase 3.
+
+**One complete job is selected as the POC dataset.** A job with strong image coverage, an existing report in a readable format, and a reasonable defect count. This is the dataset everything else is built and tested against.
+
+---
+
+## Image Preprocessing Pipeline
+
+<Steps>
+1. **Standardise naming** — implement a consistent naming scheme: `{job_id}_{sensor_type}_{sequence}.ext`
+2. **EXIF/GPS extraction** — ExifTool batch extraction of all metadata to a structured CSV: filename, GPS coordinates, capture timestamp, sensor type
+3. **RGB/thermal separation** — sort images into `rgb_wide/`, `rgb_zoom/`, `thermal/` subdirectories
+4. **Thermal RJPEG extraction** — use DJI Thermal SDK to extract raw temperature matrices from RJPEG files; produce PNG temperature maps alongside originals
+5. **Quality filter** — flag blurred images (Laplacian variance below threshold), extreme underexposure, corrupt files
+6. **Size normalisation** — document the range of image resolutions; set target resolution for YOLOv11 input
+</Steps>
+
+---
+
+## Document Extraction Pipeline
+
+### Native PDF (best case)
+```python
+# PyMuPDF for direct text extraction
+import fitz  # PyMuPDF
+doc = fitz.open("report.pdf")
+for page in doc:
+    text = page.get_text()
+```
+
+### Scanned PDF — English
+```python
+# pdf2image + pytesseract
+from pdf2image import convert_from_path
+import pytesseract
+images = convert_from_path("scanned_report.pdf", dpi=300)
+text = pytesseract.image_to_string(images[0], lang='eng')
+```
+
+### Scanned PDF — Arabic / Bilingual
+```python
+# PaddleOCR — significantly better Arabic accuracy than Tesseract
+from paddleocr import PaddleOCR
+ocr = PaddleOCR(use_angle_cls=True, lang='arabic')
+result = ocr.ocr("page.png", cls=True)
+```
+
+<Aside type="caution" title="Measure OCR accuracy honestly">
+Run OCR on 10 representative Arabic reports and manually verify the output against the original. Record the accuracy percentage. If it is below 85% for key fields (defect type, location, severity), the OCR approach needs adjustment before Phase 4 uses this data. Do not carry a known accuracy problem forward.
+</Aside>
+
+---
+
+## Report-to-Image Matching
+
+Build a job manifest — a structured JSON file that connects every report to its corresponding images:
+
+```json
+{
+  "job_id": "KOC-2024-0147",
+  "inspection_date": "2024-03-15",
+  "report_path": "reports/KOC-2024-0147.pdf",
+  "images": {
+    "rgb_wide": ["images/rgb_wide/KOC-2024-0147_001.jpg", "..."],
+    "rgb_zoom": ["images/rgb_zoom/KOC-2024-0147_001.jpg", "..."],
+    "thermal":  ["images/thermal/KOC-2024-0147_001_temp.png", "..."]
+  },
+  "findings_count": 12,
+  "defect_types": ["corrosion", "insulation_failure"]
+}
+```
+
+If automatic matching is not possible (naming conventions are inconsistent), the matching is done manually for the POC dataset and the problem is documented for future data hygiene.
+
+---
+
+## Vector Database Population
+
+ChromaDB collections to create:
+
+| Collection | Source | Chunking Strategy |
+|---|---|---|
+| `standards` | ISO, ASME, Kuwait standards PDFs | Section-level chunks, preserve clause numbers |
+| `historical_reports` | All completed inspection reports | Finding-level chunks |
+| `defect_definitions` | Taxonomy built in Phase 3 | One document per defect class |
+| `drawings_metadata` | Title block data from technical drawings | One document per drawing |
+
+---
+
+## Phase 2 Deliverables Checklist
+
+- [ ] POC dataset selected and documented — job ID, image count, report quality
+- [ ] Image preprocessing pipeline script committed — handles all sensor types
+- [ ] EXIF extraction CSV for POC dataset — GPS, timestamps, sensor types verified
+- [ ] Thermal RJPEG extraction verified — DJI Thermal SDK producing valid temperature maps
+- [ ] OCR accuracy report — measured on 10+ Arabic documents, percentage recorded
+- [ ] Job manifest JSON for POC dataset — all report-to-image links verified
+- [ ] ChromaDB populated — all four collections, document counts recorded
+- [ ] `docs/03_data_pipeline/` — full methodology, tools, accuracy metrics committed

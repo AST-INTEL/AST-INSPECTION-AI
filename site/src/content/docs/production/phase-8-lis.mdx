@@ -1,0 +1,48 @@
+---
+title: "Phase 8 · LIS Integration"
+description: Connecting AI inspection output to CANAR's existing LIS inspection platform
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Phase 8 · LIS Integration
+
+<span class="badge-future">◯ Future</span>
+
+**Duration:** TBD — depends on LIS API surface &nbsp;|&nbsp; **Requires:** Production deployment complete, LIS API access
+
+---
+
+## What LIS Is
+
+LIS (Laboratory/Inspection Information System) is CANAR's existing inspection reporting and tracking platform. It is the system of record for completed inspection jobs — client, asset, date, findings, recommendations, engineer sign-off.
+
+Phase 8 connects the AI intelligence layer output to LIS as an input source. The AI generates structured findings. LIS receives them, presents them for engineer review, and manages the approval workflow it already handles today.
+
+<Aside type="note" title="Neither system replaces the other">
+The AI system does not replace LIS. LIS does not run the AI. They have a clean interface: AI generates → engineer reviews → LIS records. The boundary between them is a structured data handoff.
+</Aside>
+
+---
+
+## Integration Scope (TBD)
+
+The exact integration approach depends on the LIS API surface, which is reviewed after production approval. The options in order of preference:
+
+| Option | Description | Complexity |
+|---|---|---|
+| **API integration** | AI system POSTs structured findings JSON to LIS API endpoint | Low — if LIS has a documented API |
+| **Database integration** | AI writes directly to LIS database tables | Medium — requires schema access and DB permissions |
+| **File-based handoff** | AI exports structured XML/CSV that LIS imports via existing batch import | Low — if LIS has an import function |
+| **Manual bridge** | Engineer copy-pastes structured AI output into LIS | Zero dev work — worst-case fallback |
+
+---
+
+## Phase 8 Deliverables (Outline — to be refined)
+
+- [ ] LIS technical audit — API surface, integration points, data schema
+- [ ] Integration architecture decision — chosen approach documented and approved
+- [ ] API bridge development (if applicable)
+- [ ] Pilot integration on one job type
+- [ ] End-to-end test — AI finding → LIS record, engineer review workflow preserved
+- [ ] Full integration deployed and operational

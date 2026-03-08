@@ -1,0 +1,54 @@
+---
+title: IT Brief · VLAN Isolation
+description: What we need from IT and why — written for a non-AI audience
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# IT Brief · VLAN Isolation
+
+**Audience:** IT department / network team
+
+**Estimated IT effort:** 1–2 days
+
+---
+
+## What We Are Asking For
+
+Place one specific workstation on a network segment that has no routing to the internet and no routing to other company network segments. The machine needs:
+- Local network access only (for engineer workstation → AI machine communication)
+- No outbound internet routing
+- Blocked inbound from all company network segments except the engineer's workstation IP
+
+That is the complete network requirement.
+
+---
+
+## Why This Is Necessary
+
+The AST Inspection AI system processes inspection imagery from KOC, KNPC, MEW, and other GCC clients. These clients have confidentiality requirements that mean their data cannot transmit to external systems.
+
+The AI models run 100% locally — they do not require internet access to operate. The VLAN isolation provides a network-level guarantee that matches the application-level air-gap we have already built and tested.
+
+**The machine can still be used normally** — it is not permanently locked down. The Docker service that runs the AI pipeline has no internet routing. Other uses of the machine are unaffected.
+
+---
+
+## Alternative: Dedicated Isolated Machine
+
+If VLAN configuration is not feasible on the timeline, an alternative is using the work machine with its network cable physically disconnected during AI processing sessions. This is less elegant but provides the same security guarantee.
+
+<Aside type="note">
+The POC home machine demonstrates the air-gap architecture — it has no internet connection at all during AI operation. The Wireshark capture from Phase 6 confirms zero outbound traffic in 30 minutes of active use. The production requirement is the same property, implemented via VLAN rather than physical disconnection.
+</Aside>
+
+---
+
+## Network Configuration Summary
+
+| Requirement | Detail |
+|---|---|
+| Outbound internet | **Blocked** — AI containers have no internet routing |
+| Inbound from company network | **Blocked** — except engineer workstation IP |
+| Local network (engineer ↔ AI machine) | **Allowed** — Streamlit UI on port 8501 |
+| Machine usability for other tasks | **Unaffected** — VLAN applies to Docker service, not OS |

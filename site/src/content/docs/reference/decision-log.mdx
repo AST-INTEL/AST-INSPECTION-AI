@@ -1,0 +1,100 @@
+---
+title: Decision Log
+description: Every significant architectural and technical decision, with rationale
+---
+
+# Decision Log
+
+Every significant decision made during the project, in order, with rationale. This exists so that future engineers can understand why things are the way they are — not just what they are.
+
+---
+
+## D-001 · Dual-LLM Architecture
+
+**Decision:** Use two separate language models — one for inspection reasoning, one for operations management.
+
+**Alternatives considered:** Single LLM handling both roles.
+
+**Rationale:** Separation of concerns. The inspection LLM needs to be a deep technical reasoner at temperature=0 with citation enforcement. The operations LLM needs to be a fast, code-aware system manager. These requirements pull in different directions. A single model optimised for one role performs poorly at the other. Dedicated models allow independent optimisation, independent updates, and clear fault boundaries.
+
+**Trade-off accepted:** Sequential loading on the POC machine (16GB VRAM). Accepted because it only affects POC performance, not correctness, and the production machine eliminates this constraint.
+
+---
+
+## D-002 · Docker Containerisation
+
+**Decision:** Package the entire system as a single Docker container.
+
+**Alternatives considered:** Native installation scripts, Python virtualenv, Conda environment.
+
+**Rationale:** Portability. The entire point of the POC is to build something that transfers identically to the production machine. Native installs are fragile across different hardware configurations, driver versions, and OS states. A Docker container is bit-for-bit identical across machines. Build once, verify once, deploy anywhere.
+
+**Trade-off accepted:** Docker Desktop dependency on Windows. Accepted — Docker Desktop is well-supported and free for the use case.
+
+---
+
+## D-003 · Local-Only Deployment
+
+**Decision:** Zero internet connectivity at runtime. All components run locally.
+
+**Alternatives considered:** Hybrid — local inference, cloud vector database. Local inference, cloud-managed updates.
+
+**Rationale:** Client confidentiality is non-negotiable. KOC, KNPC, and MEW will not accept their infrastructure data on external servers. Any cloud component creates a data path we cannot fully control. The only defensible position is zero outbound — which we can prove with Wireshark.
+
+**Trade-off accepted:** No automatic model updates. Updates are manual, deliberate, and versioned. This is a feature, not a bug — clients can verify exactly what version of every model processed their data.
+
+---
+
+## D-004 · Qwen2.5 Model Family
+
+**Decision:** Use Qwen2.5 for the inspection LLM and Qwen2.5-Coder for the operations LLM.
+
+**Alternatives considered:** Llama 3.1, Mistral, Phi-3, Gemma 2.
+
+**Rationale:** Qwen2.5 has the best technical reasoning capability in the 14B–32B parameter range for the hardware we have. Critically, it has strong Arabic language support — CANAR's reports are bilingual, and the LLM needs to reason over Arabic text. Qwen2.5-Coder is from the same architecture family, which simplifies the container and update path.
+
+---
+
+## D-005 · YOLOv11 Vision Model
+
+**Decision:** YOLOv11 for visual defect detection.
+
+**Alternatives considered:** YOLOv8, DETR, GroundingDINO, Florence-2.
+
+**Rationale:** YOLOv11 offers the best accuracy/speed balance for real-time object detection on GPU. It is well-supported, has an active community, and integrates cleanly with the Python pipeline. GroundingDINO was considered for its zero-shot capability but is significantly slower and harder to fine-tune on custom datasets. YOLOv11 zero-shot performance is sufficient to establish a baseline, and the fine-tuning path is well-documented.
+
+---
+
+## D-006 · GitHub Account ast-intel
+
+**Decision:** Create a dedicated GitHub account for this project at the department level, not personal.
+
+**Rationale:** The repository belongs to CANAR's Advanced Systems & Technology department, not to an individual engineer. Using a department account ensures the code does not disappear if the engineer who built it moves on. It also signals to management that this is institutional infrastructure, not a personal side project.
+
+---
+
+## D-007 · Sequential LLM Loading on POC Machine
+
+**Decision:** On the 16GB VRAM POC machine, load models sequentially rather than simultaneously.
+
+**Alternatives considered:** Running a single smaller model that fits alongside the vision model.
+
+**Rationale:** Correctness over speed. The 14B inspection model and 7B operations model are the minimum viable sizes for the quality of technical reasoning required. Running a smaller model to fit everything in VRAM simultaneously would compromise report quality — which defeats the purpose. The sequential loading adds latency but produces correct output. The production RTX 5090 eliminates this constraint entirely.
+
+---
+
+## D-008 · ChromaDB for Vector Storage
+
+**Decision:** ChromaDB as the vector database.
+
+**Alternatives considered:** Pinecone (cloud, rejected), Weaviate, FAISS.
+
+**Rationale:** ChromaDB runs entirely locally, has a clean Python API, persists to disk, and has no network requirement. FAISS was considered but lacks a persistence layer without additional engineering. Weaviate is more complex to deploy than needed for this use case. ChromaDB is the right size tool.
+
+---
+
+## D-009 · Reject Automatic Self-Modification
+
+**Decision:** The system does not automatically rewrite its own prompts, update its own models, or modify its own behaviour based on runtime feedback.
+
+**Rationale:** Client trust and auditability. When a client asks "what AI processed my data?" the answer must be specific and verifiable. If the system modifies itself continuously, that question cannot be answered. All improvements are deliberate, versioned, and go through an explicit evaluation gate before deployment.

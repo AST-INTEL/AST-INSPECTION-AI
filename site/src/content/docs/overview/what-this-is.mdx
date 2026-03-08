@@ -1,0 +1,67 @@
+---
+title: What This Is
+description: AST Inspection AI — purpose, scope, and what we are building
+---
+
+import { Card, CardGrid, Badge, Aside } from '@astrojs/starlight/components';
+
+# AST Inspection AI
+
+**A fully local, air-gapped AI inspection intelligence system built for CANAR Advanced Systems & Technology.**
+
+This system takes the DJI H30T multi-sensor imagery our team collects on every inspection job — RGB wide, RGB zoom (36× optical), thermal IR — and processes it through a dual-LLM AI pipeline that cross-references engineering standards, generates structured inspection reports, and learns from every job we complete.
+
+It runs entirely on hardware we own, in a building we control. No cloud. No vendor. No subscription. No client data leaving the premises.
+
+---
+
+## What It Does
+
+<CardGrid>
+  <Card title="Processes H30T Imagery" icon="magnifier">
+    RGB wide, RGB zoom, and thermal IR channels analysed simultaneously by a fine-tuned YOLOv11 vision model trained on CANAR's own inspection data.
+  </Card>
+  <Card title="Generates Inspection Reports" icon="document">
+    Structured findings reports cross-referenced against ISO, ASME, and Kuwait engineering standards. Every claim cited to a specific document and clause.
+  </Card>
+  <Card title="Learns From Every Job" icon="rocket">
+    Vector database grows with each completed inspection. Engineer corrections feed back into the model. Quarterly fine-tuning checkpoints improve accuracy over time.
+  </Card>
+  <Card title="Zero Outbound Traffic" icon="shield">
+    Air-gapped by design. Wireshark packet capture during demo sessions confirms zero outbound network traffic. Client data is physically unable to reach an external server.
+  </Card>
+</CardGrid>
+
+---
+
+## Who Built This and Why
+
+**Casey McGuire — Advanced Systems & Technology, CANAR Holding (I&V Division)**
+
+The trigger was Scopito. We evaluated it, ran the numbers, and abandoned it. The problem was not the AI — it was the architecture. Cloud-based, generic model, no understanding of GCC conditions or our client confidentiality requirements. KOC, KNPC, and MEW will not accept their infrastructure data on an external server. That kills every cloud-based AI inspection tool on the market.
+
+The only viable path is fully local. This project builds that path from first principles.
+
+---
+
+## What This Is Not
+
+<Aside type="caution" title="Important boundaries">
+- This system does **not** replace the engineer. It is a force multiplier. Every AI output requires engineer review before leaving the system.
+- This system does **not** make decisions autonomously. It flags findings, cites evidence, and presents structured outputs for human judgment.
+- This system does **not** connect to the internet at runtime. It cannot call home, receive updates, or transmit data without explicit engineer action.
+- This is **not** a product we are buying. This is infrastructure we are building and own permanently.
+</Aside>
+
+---
+
+## Two Phases, One System
+
+The project is divided into two clean tracks:
+
+| Track | Where | Status | Gate |
+|---|---|---|---|
+| **Proof of Concept** | Home machine (Ryzen 7 7800X3D, RTX 4080 Super) | 🟢 Active | None — self-funded |
+| **Production** | Work machine (Ryzen 9 Threadripper, RTX 5090) | 🟡 Pending | Management approval required |
+
+The POC proves the system works on real CANAR data before asking for anything. Management sees a working demo, not a pitch deck. **That demo exists before this request is made.**

@@ -1,0 +1,70 @@
+---
+title: Production Overview
+description: What the Production track is, what it requires, and what changes from the POC
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+# Production Track
+
+<span class="badge-production">⚠ Requires Management Approval</span>
+
+---
+
+## What This Track Is
+
+The Production track begins only after the POC is complete, demonstrated, and management has given approval. It deploys the system on CANAR's work machine with upgraded models, network isolation provided by IT, and the LIS integration built.
+
+Everything in this track builds on the POC. The Docker container is the same container — loaded onto a more capable machine with larger models and proper company network isolation.
+
+---
+
+<Aside type="caution" title="Nothing in this section is in progress">
+All production track pages describe future work that has not begun. The POC track (Phases 0–7) must be fully complete before any production work starts. These pages exist to give management a complete picture of what comes after approval.
+</Aside>
+
+---
+
+## Production Requirements
+
+<CardGrid>
+  <Card title="IT: VLAN Isolation" icon="shield">
+    The work machine must be placed on an isolated VLAN or physically separated from the company network before any AI processing of client data begins. This is an IT department task estimated at 1–2 days of IT time.
+  </Card>
+  <Card title="Work Machine Dedication" icon="laptop">
+    The Ryzen 9 Threadripper / RTX 5090 workstation needs to be designated for this deployment. It does not need to be exclusive (can still be used for other tasks) but the Docker service runs persistently.
+  </Card>
+  <Card title="Model Download" icon="download">
+    One-time download of upgraded model weights on company connection: Qwen2.5 32B (~18GB) and Qwen2.5-Coder 14B (~8GB). Total ~26GB. This is done once and packaged into the updated container.
+  </Card>
+  <Card title="LIS API Access" icon="puzzle">
+    For Phase 8 (LIS Integration), read access to the LIS API or database schema is required to understand the integration surface. This is scoped after approval.
+  </Card>
+</CardGrid>
+
+---
+
+## What Management Is Approving
+
+This is the complete list. Nothing hidden.
+
+| Item | Detail | Estimated Effort |
+|---|---|---|
+| IT VLAN isolation | Network team configures isolated segment for the work machine | 1–2 days IT time |
+| Work machine designation | Threadripper/RTX 5090 runs the Docker service | Ongoing (low overhead) |
+| Model weight download | 26GB one-time download on company connection | ~2 hours download time |
+| LIS API access | Schema review for Phase 8 scoping | IT/systems team 1–2 hours |
+
+**Total cost to company:** IT time for VLAN setup (~1–2 days). Everything else is already owned.
+
+---
+
+## What Happens on Approval
+
+1. IT notified — VLAN isolation scoped and scheduled
+2. Production container built — same as POC, upgraded to 32B/14B models
+3. Container transferred to work machine via USB
+4. Runbook executed — [see Deployment Runbook](/production/deployment-runbook)
+5. Smoke test passes on production hardware
+6. Phase 8 (LIS Integration) scoped based on LIS API access
+7. First production job processed under engineer supervision

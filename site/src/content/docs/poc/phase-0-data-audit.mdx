@@ -1,0 +1,116 @@
+---
+title: "Phase 0 · Data Audit & Repository Setup"
+description: Full inventory of all CANAR data assets before any code is written
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Phase 0 · Data Audit & Repository Setup
+
+<span class="badge-active">● ACTIVE</span>
+
+**Duration:** 2–3 days &nbsp;|&nbsp; **Owner:** Casey McGuire &nbsp;|&nbsp; **Status:** In progress (~60%)
+
+---
+
+## Why This Phase Exists
+
+No assumptions. Before writing a single line of pipeline code, we need to know exactly what data we have, in what format, in what condition. Data preparation surprises in Phase 2 can unravel everything built in Phase 1. The audit exists to surface those surprises now, when they are cheap to address.
+
+The output of this phase is a written data inventory document committed to the repository — not a mental model, a documented artifact.
+
+---
+
+## Repository & Infrastructure Setup
+
+These are done first — every subsequent piece of work lives here.
+
+| Task | Status |
+|---|---|
+| GitHub account `ast-intel` created (work email, 2FA enabled) | ✅ Done |
+| Private repository `AST-INSPECTION-AI` created | ✅ Done |
+| Repository folder structure committed (src, docs, tests, config, site) | ✅ Done |
+| `.gitignore` configured — excludes `*.jpg`, `*.pdf`, `*.gguf`, `logs/`, `vectordb/`, `.env` | ✅ Done |
+| Project site scaffolded and deployed to Vercel | ✅ Done |
+| Vercel auto-deploy from `main` branch configured | ✅ Done |
+| Gameplan document committed to `docs/00_gameplan/` | ✅ Done |
+
+---
+
+## Image Inventory
+
+<Steps>
+1. **Count total images** across the entire inspection archive — exact number, not estimate
+2. **Classify by sensor type** — RGB wide, RGB zoom, thermal IR — establish the split
+3. **Verify GPS metadata** — ExifTool audit on a sample of 50+ images, check for missing/corrupt EXIF data
+4. **Check thermal format** — confirm whether thermals are RJPEG (DJI proprietary, requires SDK extraction) or standard JPEG
+5. **Assess naming convention** — is there a consistent naming scheme? Are images linkable to specific jobs?
+6. **Identify outliers** — corrupted files, wrong format, extreme resolution outliers, zero-byte files
+</Steps>
+
+**Tools:** ExifTool, Python (PIL/Pillow for batch validation), DJI Thermal SDK
+
+---
+
+## Report Inventory
+
+<Steps>
+1. **Count total reports** in the archive
+2. **Format split** — native PDF vs scanned PDF vs Word (.docx) — percentage of each
+3. **Language split** — English only, Arabic only, bilingual — percentage of each
+4. **Report-to-image linkage** — can reports be matched to their corresponding image sets by job ID, date, or naming convention?
+5. **Completeness check** — are there jobs with images but no report? Reports with no corresponding images?
+6. **Document the worst cases** — lowest quality scans, most inconsistent formatting — these determine OCR strategy
+</Steps>
+
+<Aside type="caution" title="Arabic OCR is a known difficulty">
+Arabic text in scanned PDFs is significantly harder for OCR than Latin text. The proportion of scanned Arabic reports determines how much PaddleOCR accuracy work is needed in Phase 2. Do not underestimate this.
+</Aside>
+
+---
+
+## Standards Documents Inventory
+
+| Task | Detail |
+|---|---|
+| List all standards documents in the archive | ISO, ASME, Kuwait local standards |
+| Verify they are machine-readable | Native PDF = easy. Scanned = OCR required |
+| Note version numbers | Standards get revised — we need to know which version each report references |
+| Identify gaps | Are there standards referenced in reports that we do not have a copy of? |
+
+---
+
+## Technical Drawings Assessment
+
+| Task | Detail |
+|---|---|
+| Count drawing files | Total number in archive |
+| Format check | PDF, DWG, DXF, image files |
+| Title block legibility | Can title block data (asset ID, revision, date) be extracted programmatically? |
+| Annotation density | Are there text annotations in the drawings that would be useful to index? |
+
+---
+
+## Defect Frequency Analysis
+
+**Goal:** Before training the vision model, know what we will be training it to find.
+
+From the existing report archive, extract a frequency count of all defect types mentioned. This gives us the initial defect taxonomy for Phase 3 — grounded in real CANAR data, not guesswork.
+
+Expected output: A ranked list of defect types by frequency, which directly informs which defect classes to prioritise in the labeling effort.
+
+---
+
+## Phase 0 Deliverables Checklist
+
+- [ ] `docs/01_data_audit/image_inventory.md` — total count, sensor split, GPS status, format issues
+- [ ] `docs/01_data_audit/report_inventory.md` — total count, format split, language split, linkage assessment
+- [ ] `docs/01_data_audit/standards_inventory.md` — all standards documents listed, readability assessed
+- [ ] `docs/01_data_audit/drawings_assessment.md` — count, format, title block extractability
+- [ ] `docs/01_data_audit/defect_frequency.md` — ranked defect type list from report archive
+- [ ] `docs/01_data_audit/data_quality_issues.md` — all identified problems, no omissions
+- [ ] All documents committed to `main` branch
+
+<Aside type="note" title="Phase gate">
+Phase 1 does not begin until all seven deliverables above are committed and reviewed. No exceptions.
+</Aside>

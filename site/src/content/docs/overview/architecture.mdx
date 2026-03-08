@@ -1,0 +1,134 @@
+---
+title: Architecture
+description: How the system is built — dual-LLM, vision pipeline, vector database, Docker deployment
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+# Architecture
+
+## System Overview
+
+The AST Inspection AI system is composed of four layers, all containerised in a single Docker image and running entirely on local hardware.
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  DOCKER CONTAINER                    │
+│                                                      │
+│  ┌──────────────┐    ┌──────────────────────────┐   │
+│  │  VISION      │    │  INSPECTION LLM          │   │
+│  │  LAYER       │───▶│  Qwen2.5 14B (POC)       │   │
+│  │  YOLOv11     │    │  Qwen2.5 32B (Production)│   │
+│  └──────────────┘    └──────────────────────────┘   │
+│         │                        │                   │
+│         ▼                        ▼                   │
+│  ┌──────────────┐    ┌──────────────────────────┐   │
+│  │  VECTOR DB   │    │  OPERATIONS LLM          │   │
+│  │  ChromaDB    │    │  Qwen2.5-Coder 7B (POC)  │   │
+│  │  Standards   │    │  Qwen2.5-Coder 14B (Prod)│   │
+│  │  Reports     │    └──────────────────────────┘   │
+│  └──────────────┘                                    │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │  STREAMLIT UI · Job submission · Results    │    │
+│  └─────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────┘
+         ▲                              │
+    [H30T Images]              [Inspection Report PDF]
+    [READ ONLY]                [Engineer Review Queue]
+```
+
+---
+
+## Layer 1: Vision — YOLOv11
+
+The vision model is the first thing to touch every image.
+
+**Input:** H30T imagery — RGB wide, RGB zoom (36× optical), thermal IR (RJPEG decoded via DJI Thermal SDK)
+
+**What it does:** Object detection — identifies regions of interest, classifies potential defects, outputs bounding boxes with confidence scores and class labels.
+
+**Defect taxonomy (8–15 classes, defined during Phase 3):**
+Corrosion, structural cracks, thermal hotspots, insulation failure, pipeline leaks, electrical faults, mechanical wear, coating failure, and others identified from the CANAR report archive.
+
+**Training path:**
+- **Day 1:** Zero-shot — pretrained YOLOv11 weights, no CANAR data
+- **Phase 3:** First fine-tuning — 100–200 labeled images from one complete job
+- **Ongoing:** Quarterly fine-tuning checkpoints as labeled dataset grows
+
+---
+
+## Layer 2: Inspection LLM — Qwen2.5
+
+The language model is the reasoning engine. It receives structured JSON output from the vision model and cross-references it against the vector database.
+
+| Setting | Value | Reason |
+|---|---|---|
+| Temperature | **0.0** | Deterministic output — same input always produces same report |
+| Confidence scoring | **Enabled** | Every claim has an attached confidence level |
+| Hallucination guard | **Active** | Returns "not found in documents" rather than inventing information |
+| Citation requirement | **Mandatory** | Every finding cites a specific document, section, and clause |
+
+**POC model:** Qwen2.5 14B — fits within 16GB VRAM, strong technical reasoning, multilingual (Arabic/English)
+
+**Production model:** Qwen2.5 32B — same architecture, 2× parameter count, runs simultaneously with Operations LLM on RTX 5090
+
+---
+
+## Layer 3: Operations LLM — Qwen2.5-Coder
+
+A separate, smaller language model that handles everything that is not inspection reasoning.
+
+**Responsibilities:**
+- Monitors pipeline health, VRAM utilisation, queue depth
+- Analyses error logs and identifies failure patterns
+- Manages job orchestration and routing between vision and inspection LLM
+- Generates daily system health reports
+- Handles checkpoint and resume logic on job failures
+
+The Operations LLM keeps the Inspection LLM clean — it only ever sees inspection tasks, not system management noise.
+
+---
+
+## Layer 4: Vector Database — ChromaDB
+
+The institutional knowledge store. Everything we know goes in here and stays here forever.
+
+**Contents:**
+- All engineering standards (ISO, ASME, Kuwait local standards) — chunked and indexed
+- All completed inspection reports — searchable historical findings
+- Technical drawings — title block data and extractable annotations
+- Defect type library — definitions, visual examples, severity criteria
+
+**Growth model:** Every completed job adds to the database automatically. The system gets better at retrieval with every inspection that passes through it.
+
+---
+
+## Deployment: Docker Container
+
+<Aside type="tip" title="Build once, deploy anywhere">
+The entire system — both LLMs, vision model, vector database, application pipeline, and UI — is packaged in a single Docker container. Transfer is a file copy. Deployment is three config changes.
+</Aside>
+
+| Property | Value |
+|---|---|
+| Transfer method | USB drive — single `.tar` file |
+| Internet at runtime | **Zero** |
+| External dependencies at runtime | **None** |
+| Config changes for production deploy | 3 (`VRAM_LIMIT`, `MODEL_SIZE`, `ARCHIVE_PATH`) |
+| Rebuild on work machine | **Not required** |
+
+---
+
+## Hardware Requirements
+
+| | POC | Production |
+|---|---|---|
+| Machine | Home workstation | CANAR work machine |
+| CPU | Ryzen 7 7800X3D | Ryzen 9 Threadripper |
+| GPU | RTX 4080 Super **16GB** | RTX 5090 **32GB** |
+| RAM | 64GB | 256GB |
+| LLM loading | Sequential | Simultaneous |
+| Inspection LLM | Qwen2.5 **14B** (~9GB VRAM) | Qwen2.5 **32B** (~18GB VRAM) |
+| Operations LLM | Qwen2.5-Coder **7B** (~4GB VRAM) | Qwen2.5-Coder **14B** (~8GB VRAM) |
+| Combined VRAM | ~13GB (sequential) | ~26GB (simultaneous) |

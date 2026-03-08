@@ -1,0 +1,154 @@
+---
+title: "Phase 1 · Environment Setup & Dual-LLM Foundation"
+description: Docker environment, both LLMs installed, GPU-accelerated, network-isolated
+---
+
+import { Aside, Steps, Code } from '@astrojs/starlight/components';
+
+# Phase 1 · Environment Setup & Dual-LLM Foundation
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 3–5 days &nbsp;|&nbsp; **Depends on:** Phase 0 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Stand up the complete containerised environment. Both language models installed, GPU-accelerated, verified. Folder permission architecture enforced. Logging framework operational. Network isolation confirmed. This is the foundation every other phase builds on — it is done right before anything else is started.
+
+The environment is considered complete only when the smoke test passes end-to-end.
+
+---
+
+## Docker Environment Setup
+
+<Steps>
+1. **Install Docker Desktop** on Windows 11 with WSL2 backend integration enabled
+2. **Verify GPU passthrough** — confirm NVIDIA Container Toolkit is working, RTX 4080 Super visible inside container
+3. **Build base image** — CUDA-enabled Ubuntu base, Python 3.11, all system dependencies
+4. **Configure volume mounts:**
+   - `/data/archive` — read-only mount of inspection image/report archive
+   - `/data/outputs` — write-only for AI-generated report drafts
+   - `/app/logs` — append-only log volume
+   - `/app/vectordb` — ChromaDB persistent storage
+5. **Verify GPU is accessible** inside the container with `nvidia-smi`
+</Steps>
+
+<Aside type="tip" title="GPU passthrough verification command">
+Run `docker run --gpus all nvidia/cuda:12.0-base nvidia-smi` before writing any application code. If this does not return the GPU specs cleanly, nothing else will work.
+</Aside>
+
+---
+
+## Folder Permission Architecture
+
+This is a security requirement, not a convenience setting. It is implemented before any AI process touches data.
+
+| Mount | Permissions | Who Accesses |
+|---|---|---|
+| `/data/archive` | **Read-only** at OS level | AI pipeline reads, cannot write |
+| `/data/outputs/drafts` | Write-only for AI process | AI writes draft reports here |
+| `/data/outputs/pending_review` | Engineer read/write | Engineer moves approved drafts here |
+| `/data/outputs/approved` | Engineer write only | Final approved reports |
+| `/app/logs` | Append-only (`chattr +a`) | All processes append, nothing deletes |
+
+**The AI pipeline user account has no delete permissions anywhere in the system.** This is not a configuration toggle — it is enforced at the OS level.
+
+---
+
+## LLM Installation
+
+### Inspection Intelligence — Qwen2.5 14B
+
+```bash
+# Via Ollama inside Docker container
+ollama pull qwen2.5:14b
+
+# Verify load and GPU utilisation
+ollama run qwen2.5:14b "Respond with: SYSTEM READY"
+nvidia-smi  # Confirm VRAM consumption ~9GB
+```
+
+### Operations Intelligence — Qwen2.5-Coder 7B
+
+```bash
+ollama pull qwen2.5-coder:7b
+
+# Verify
+ollama run qwen2.5-coder:7b "Respond with: OPERATIONS READY"
+nvidia-smi  # Confirm VRAM consumption ~4GB
+```
+
+<Aside type="caution" title="Sequential loading on POC machine">
+The RTX 4080 Super has 16GB VRAM. Running both models simultaneously would require ~13GB — technically possible, but leaves no headroom for the vision model. On the POC machine, the Operations LLM loads for system tasks, unloads fully, then the Inspection LLM loads for report generation. This is handled automatically by the model routing layer built in Phase 4.
+</Aside>
+
+---
+
+## Network Isolation
+
+```bash
+# Docker network configuration — localhost binding only
+# In docker-compose.yml:
+# network_mode: "none"   ← no external network access for AI containers
+# OR
+# networks:
+#   internal:
+#     internal: true     ← internal-only network, no internet routing
+```
+
+**Firewall rules to add (Windows Firewall / UFW in WSL2):**
+- Block all outbound connections from the Docker AI containers
+- Allow only: localhost:8501 (Streamlit UI), localhost:11434 (Ollama API)
+- Log all blocked attempts
+
+---
+
+## Logging Framework
+
+All logs are timestamped, structured (JSON), and append-only.
+
+```
+logs/
+├── pipeline.log       # Job submissions, completions, errors
+├── llm_calls.log      # Every LLM call — prompt hash, response time, tokens
+├── vision.log         # YOLOv11 inference — image ID, detections, confidence
+├── security.log       # Permission violations, blocked attempts
+└── health.log         # System health snapshots every 5 minutes
+```
+
+**Append-only enforcement:**
+```bash
+chattr +a /app/logs/*.log  # Cannot be deleted or truncated, only appended
+```
+
+---
+
+## Phase 1 Smoke Test
+
+The phase is not complete until this test passes in its entirety:
+
+<Steps>
+1. Start Docker container with all volume mounts
+2. Verify GPU visible: `nvidia-smi` inside container shows RTX 4080 Super
+3. Load Operations LLM: `qwen2.5-coder:7b` responds to prompt
+4. Unload Operations LLM, load Inspection LLM: `qwen2.5:14b` responds to prompt
+5. Submit a single test image through the vision stub (random image — not checking accuracy yet)
+6. Confirm no outbound network traffic: `netstat` shows no external connections
+7. Confirm `/data/archive` is not writable: `touch /data/archive/test` returns permission denied
+8. Confirm log files exist and are append-only
+</Steps>
+
+---
+
+## Phase 1 Deliverables Checklist
+
+- [ ] `Dockerfile` — complete, committed, reproducible build
+- [ ] `docker-compose.yml` — all volume mounts, network config, GPU passthrough
+- [ ] `docs/02_environment/gpu_verification.md` — screenshot/output of `nvidia-smi` inside container
+- [ ] `docs/02_environment/permission_architecture.md` — all mount points, permissions, verification commands
+- [ ] `docs/02_environment/network_isolation.md` — firewall rules documented, `netstat` output showing no external connections
+- [ ] `docs/02_environment/llm_install_log.md` — Ollama pull output, VRAM usage per model, response verification
+- [ ] `docs/02_environment/smoke_test_results.md` — all 8 smoke test steps with pass/fail and evidence
+- [ ] All documents committed to `main` branch

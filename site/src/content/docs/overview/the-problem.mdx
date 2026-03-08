@@ -1,0 +1,69 @@
+---
+title: The Problem
+description: Why we are building this and what we tried before
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+# The Problem
+
+## Current State: Manual Everything
+
+Every H30T inspection job produces hundreds to thousands of images across three sensor channels — RGB wide, RGB zoom, and thermal IR. Today, an engineer reviews every one of them manually. They cross-reference what they see against the relevant engineering standard in their head or in a document they have open in another window. They write the report from scratch.
+
+This is how it has been done everywhere, forever. It works. But it does not scale, it does not learn, and it does not retain institutional knowledge when people leave.
+
+The deeper problem is that we are sitting on years of completed inspection jobs — images, reports, findings, standards — and none of it is connected to anything. Every engineer starts from zero on every job.
+
+---
+
+## What We Tried: Scopito
+
+We evaluated Scopito, the market-leading AI inspection platform. The evaluation was thorough. The conclusion was clear: **not suitable for CANAR's operating environment.**
+
+<CardGrid>
+  <Card title="Cloud Architecture" icon="warning">
+    All imagery is uploaded to Scopito's servers for processing. There is no local processing option. The data leaves the building.
+  </Card>
+  <Card title="Client Confidentiality" icon="shield">
+    KOC, KNPC, and MEW infrastructure data cannot be hosted on a third-party cloud server. This is not a preference — it is a contractual and practical constraint.
+  </Card>
+  <Card title="Generic AI Model" icon="puzzle">
+    Scopito's model is trained on generic inspection imagery from global datasets. It has no knowledge of GCC operating conditions, local standards, or the specific defect types we document.
+  </Card>
+  <Card title="Vendor Dependency" icon="warning">
+    Subscription model. If Scopito raises prices, changes terms, or shuts down — our capability disappears with it. We own nothing.
+  </Card>
+</CardGrid>
+
+<Aside type="tip" title="Scopito was not the wrong idea — it was the wrong architecture">
+The vision of AI-assisted inspection is sound. The problem is every commercial solution assumes cloud access that our clients will not accept. The only path is to build it ourselves on hardware we control.
+</Aside>
+
+---
+
+## The Client Confidentiality Constraint
+
+This is the non-negotiable wall that eliminates every cloud-based solution:
+
+| Client | Infrastructure Type | Cloud Data Acceptable? |
+|---|---|---|
+| **KOC** | Oil & gas production infrastructure | ❌ No |
+| **KNPC** | Refinery and processing plants | ❌ No |
+| **MEW** | Power generation and transmission | ❌ No |
+| **Other GCC ministries** | Critical national infrastructure | ❌ No |
+
+The moment a competing company gains access to the same cloud platform, or the platform has a data breach, or a government auditor asks where the data went — the answer cannot be "a server in Ireland."
+
+---
+
+## What This Costs Us Today
+
+The cost of the current manual process is not just engineer time, though that is significant. It is also:
+
+- **Knowledge loss** — when an experienced inspector leaves, their pattern recognition goes with them
+- **Inconsistency** — two engineers reviewing the same images may reach different conclusions
+- **No compounding** — we do not get better at inspection the more jobs we complete; each job is independent
+- **Reporting bottleneck** — the report is always the last thing to be done, always under time pressure, always a manual writing task
+
+The AST Inspection AI system addresses every one of these directly.

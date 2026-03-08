@@ -1,0 +1,99 @@
+---
+title: Deployment Runbook
+description: Exact steps to deploy the production system on the work machine — written for a technician
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+# Deployment Runbook
+
+**Audience:** Engineer or IT technician performing the production deployment
+
+**Prerequisites before starting:**
+- IT has confirmed VLAN isolation is in place
+- Docker Desktop installed on the work machine
+- NVIDIA drivers version 535+ installed
+- At least 50GB free storage available
+- The container file `ast-inspection-ai-v1.0-poc.tar.gz` is on a USB drive
+- The recorded SHA-256 hash of the container file is available
+
+**Estimated time:** 2–3 hours (dominated by model download time)
+
+---
+
+## Step-by-Step Deployment
+
+<Steps>
+
+1. **Verify prerequisites**
+   ```bash
+   docker --version          # Must show Docker 24.x or later
+   nvidia-smi                # Must show RTX 5090
+   df -h /                   # Must show >50GB free
+   ```
+
+2. **Copy container from USB**
+   ```bash
+   cp /media/usb/ast-inspection-ai-v1.0-poc.tar.gz ~/
+   ```
+
+3. **Verify container integrity**
+   ```bash
+   sha256sum ast-inspection-ai-v1.0-poc.tar.gz
+   # Compare output with the recorded hash from Phase 7
+   # If they do not match — STOP. Do not load a modified container.
+   ```
+
+4. **Load the container**
+   ```bash
+   docker load < ast-inspection-ai-v1.0-poc.tar.gz
+   docker images  # Confirm ast-inspection-ai:v1.0-poc appears
+   ```
+
+5. **Update the 3 production config values**
+   ```bash
+   # Edit config/production.env
+   VRAM_LIMIT=28
+   MODEL_SIZE=32b
+   ARCHIVE_PATH=/path/to/canar/inspection/archive
+   ```
+
+6. **Download production model weights** (one-time, ~26GB)
+   ```bash
+   # This is the only step that requires internet access
+   # After this step, internet can be disconnected / VLAN applied
+   docker exec ast-ai ollama pull qwen2.5:32b
+   docker exec ast-ai ollama pull qwen2.5-coder:14b
+   ```
+
+7. **Apply VLAN isolation** — confirm with IT that network isolation is active before proceeding
+
+8. **Run smoke test suite**
+   ```bash
+   docker exec ast-ai python tests/smoke_test.py
+   # All tests must pass before proceeding
+   ```
+
+9. **Verify GPU — both models simultaneous**
+   ```bash
+   # Run simultaneous load test
+   docker exec ast-ai python tests/vram_test.py
+   # Expected: both models loaded, total VRAM ~26GB, no OOM errors
+   ```
+
+10. **Confirm network isolation**
+    ```bash
+    docker exec ast-ai netstat -an | grep ESTABLISHED
+    # Expected: only localhost connections
+    ```
+
+11. **Submit first test job** — a known inspection job from the POC dataset
+    - Open Streamlit UI at `http://[work-machine-ip]:8501`
+    - Submit the test job
+    - Verify report generated and in review queue
+
+</Steps>
+
+<Aside type="tip" title="Production is ready when...">
+The smoke test passes, both models load simultaneously within VRAM limits, network isolation is confirmed, and the first test job produces a report in the review queue. All four criteria must be met.
+</Aside>

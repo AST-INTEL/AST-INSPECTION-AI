@@ -1,0 +1,109 @@
+---
+title: "Phase 5 · Integration & UI"
+description: End-to-end pipeline, Streamlit operator interface, report export, system health dashboard
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+# Phase 5 · Integration & UI
+
+<span class="badge-upcoming">⬜ Upcoming</span>
+
+**Duration:** 1 week &nbsp;|&nbsp; **Depends on:** Phase 4 complete &nbsp;|&nbsp; **Owner:** Casey McGuire
+
+---
+
+## Objective
+
+Connect the vision pipeline and intelligence layer into a single end-to-end pipeline. Build the operator interface. Make the system usable by someone who did not build it.
+
+---
+
+## End-to-End Pipeline
+
+The complete job processing flow:
+
+```
+[Engineer submits job via UI]
+        │
+        ▼
+[Pipeline validates input folder]
+  - Image count
+  - Expected sensor types present
+  - No corrupted files
+        │
+        ▼
+[YOLOv11 processes all images]
+  - Detections → Findings JSON
+  - Annotated images saved to outputs/
+        │
+        ▼
+[Inspection LLM generates report draft]
+  - ChromaDB context retrieval
+  - Per-finding analysis + citation
+  - Confidence flags applied
+        │
+        ▼
+[Report saved to outputs/pending_review/]
+  - PDF format
+  - Word (.docx) format
+  - Annotated image set linked
+        │
+        ▼
+[Engineer notified — review required]
+  - Report appears in UI review queue
+  - Engineer approves / requests revision
+        │
+        ▼
+[Approved report moved to outputs/approved/]
+```
+
+**Checkpoint/resume:** If the pipeline fails at any stage, the completed stages are checkpointed. On restart, processing resumes from the last checkpoint — no reprocessing of already-completed images.
+
+---
+
+## Streamlit UI
+
+Four views accessible from the sidebar:
+
+| View | Purpose |
+|---|---|
+| **Job Submission** | Folder path input, job metadata, sensor type selection, submit button |
+| **Active Jobs** | Real-time progress bar, current stage, estimated completion, model activity indicator |
+| **Review Queue** | List of completed jobs awaiting engineer review, annotated image viewer, report preview |
+| **System Health** | VRAM usage, queue depth, error log tail, operations LLM health summary |
+
+**Annotated Image Viewer:**
+- Side-by-side: original image vs YOLOv11 annotated image
+- Toggle between RGB and thermal for the same location
+- Click a detection bounding box → jump to that finding in the report draft
+- Flag a detection as incorrect → feeds back into the fine-tuning dataset
+
+---
+
+## Report Export Formats
+
+### PDF Export
+- CANAR letterhead template
+- Executive summary page
+- Per-finding sections with annotated image thumbnails
+- Standards citations formatted as footnotes
+- Confidence flags visually distinct (yellow highlight for low confidence)
+
+### Word (.docx) Export
+- Same structure as PDF
+- Editable — engineer can modify before final approval
+- Track changes enabled on draft
+
+---
+
+## Phase 5 Deliverables Checklist
+
+- [ ] End-to-end pipeline processes a complete job without manual intervention
+- [ ] Checkpoint/resume tested — pipeline killed mid-job and restarted, resumes correctly
+- [ ] Streamlit UI — all four views operational
+- [ ] Annotated image viewer — bounding boxes, labels, confidence scores, RGB/thermal toggle
+- [ ] PDF report export — complete with letterhead, citations, confidence flags
+- [ ] Word report export — editable, track changes enabled
+- [ ] Full pipeline benchmark — processing time per image, total job time for POC dataset, documented
+- [ ] `docs/06_integration/` — pipeline architecture, UI screenshots, benchmark results
